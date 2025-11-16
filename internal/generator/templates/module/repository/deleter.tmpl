@@ -1,0 +1,51 @@
+package repository
+
+import (
+	"context"
+	"gin-starter/common/interfaces"
+	"gin-starter/modules/{{.Schema}}/entity"
+	commonCache "gin-starter/common/cache"
+	"time"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
+	"gorm.io/gorm"
+)
+
+// {{.EntityUpper}}DeleterRepositoryUseCase defines the interface for soft-deleting {{.EntityLower}} records.
+type {{.EntityUpper}}DeleterRepositoryUseCase interface {
+	Delete(ctx context.Context, id, deletedBy uuid.UUID) error
+}
+
+// {{.EntityUpper}}DeleterRepository is the GORM implementation of {{.EntityUpper}}DeleterRepository.
+type {{.EntityUpper}}DeleterRepository struct {
+	db *gorm.DB
+	cache interfaces.Cacheable
+}
+
+// New{{.EntityUpper}}DeleterRepository creates a new {{.EntityUpper}}DeleterRepository.
+func New{{.EntityUpper}}DeleterRepository(db *gorm.DB, cache interfaces.Cacheable) *{{.EntityUpper}}DeleterRepository {
+	return &{{.EntityUpper}}DeleterRepository{
+		db: db,
+		cache: cache,
+	}
+}
+
+// Delete performs a soft-delete by updating deleted_by and deleted_at fields.
+func (r *{{.EntityUpper}}DeleterRepository) Delete(ctx context.Context, id, deletedBy uuid.UUID) error {
+	if err := r.db.WithContext(ctx).
+		Model(&entity.{{.EntityUpper}}{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"deleted_by": deletedBy,
+			"updated_at": time.Now(),
+			"deleted_at": time.Now(),
+		}).Error; err != nil {
+		return errors.Wrap(err, "[{{.EntityUpper}}DeleterRepository-Delete] failed to delete {{.EntityLower}}")
+	}
+
+	// Invalidate cache
+	cacheKey := fmt.Sprintf(commonCache.{{.EntityUpper}}FindByID, id.String())
+	_ = r.cache.Remove(cacheKey)
+
+	return nil
+}

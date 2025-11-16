@@ -1,0 +1,72 @@
+package repository
+
+import (
+	"context"
+	"gin-starter/common/interfaces"
+	"gin-starter/modules/{{.Schema}}/entity"
+	"time"
+	"github.com/pkg/errors"
+	"gorm.io/gorm"
+)
+
+// {{.EntityUpper}}CreatorRepositoryUseCase defines the interface for creating {{.EntityLower}} records.
+type {{.EntityUpper}}CreatorRepositoryUseCase interface {
+	CreateOrUpdate(ctx context.Context, e *entity.{{.EntityUpper}}) error
+}
+
+// {{.EntityUpper}}CreatorRepository is the GORM implementation of {{.EntityUpper}}CreatorRepository.
+type {{.EntityUpper}}CreatorRepository struct {
+	db    *gorm.DB
+	cache interfaces.Cacheable
+}
+
+// New{{.EntityUpper}}CreatorRepository creates a new {{.EntityUpper}}CreatorRepository.
+func New{{.EntityUpper}}CreatorRepository(db *gorm.DB, cache interfaces.Cacheable) *{{.EntityUpper}}CreatorRepository {
+	return &{{.EntityUpper}}CreatorRepository{
+		db:    db,
+		cache: cache,
+	}
+}
+
+// CreateOrUpdate inserts a new {{.EntityLower}} or updates it if it already exists.
+func (r *{{.EntityUpper}}CreatorRepository) CreateOrUpdate(ctx context.Context, e *entity.{{.EntityUpper}}) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var existing entity.{{.EntityUpper}}
+
+		err := tx.Unscoped().
+			Where("id = ?", e.ID).
+			First(&existing).Error
+
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// Not found → create new
+				if err := tx.Create(e).Error; err != nil {
+					return errors.Wrap(err, "[{{.EntityUpper}}CreatorRepository-CreateOrUpdate] failed to create {{.EntityLower}}")
+				}
+				return nil
+			}
+			// Other DB errors
+			return errors.Wrap(err, "[{{.EntityUpper}}CreatorRepository-CreateOrUpdate] failed to query {{.EntityLower}}")
+		}
+
+		// Found → check if soft-deleted
+		if existing.DeletedAt.Valid {
+			existing.DeletedAt.Valid = false
+			existing.DeletedAt.Time = time.Time{}
+		}
+
+		// Update fields
+		existing.UpdatedBy = e.UpdatedBy
+		existing.UpdatedAt = e.UpdatedAt
+
+		// TODO: Copy other updatable fields as needed
+		// existing.Name = e.Name
+		// existing.Email = e.Email
+
+		if err := tx.Save(&existing).Error; err != nil {
+			return errors.Wrap(err, "[{{.EntityUpper}}CreatorRepository-CreateOrUpdate] failed to update {{.EntityLower}}")
+		}
+
+		return nil
+	})
+}

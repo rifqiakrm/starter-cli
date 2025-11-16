@@ -1,0 +1,61 @@
+package handler
+
+import (
+	"gin-starter/common/errors"
+	"gin-starter/common/interfaces"
+	"gin-starter/common/response"
+	"gin-starter/middleware"
+	"gin-starter/modules/{{.Schema}}/resource"
+	"gin-starter/modules/{{.Schema}}/{{.Version}}/service"
+	"net/http"
+	"github.com/gin-gonic/gin"
+)
+
+// {{.EntityUpper}}CreatorHandler handles HTTP requests for creating {{.EntityCamelCase}}.
+type {{.EntityUpper}}CreatorHandler struct {
+	{{.EntityCamelCase}}UseCase service.{{.EntityUpper}}CreatorUseCase
+	cloudStorage interfaces.CloudStorageUseCase
+}
+
+// New{{.EntityUpper}}CreatorHandler creates a new {{.EntityUpper}}CreatorHandler.
+func New{{.EntityUpper}}CreatorHandler({{.EntityCamelCase}}UseCase service.{{.EntityUpper}}CreatorUseCase, cloudStorage interfaces.CloudStorageUseCase) *{{.EntityUpper}}CreatorHandler {
+	return &{{.EntityUpper}}CreatorHandler{
+		{{.EntityCamelCase}}UseCase: {{.EntityCamelCase}}UseCase,
+		cloudStorage: cloudStorage,
+	}
+}
+
+// Create{{.EntityUpper}} handles the HTTP request to create a new {{.EntityCamelCase}}.
+func (h *{{.EntityUpper}}CreatorHandler) Create{{.EntityUpper}}(c *gin.Context) {
+	var req resource.Create{{.EntityUpper}}Request
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errors.Wrap(err, errors.ErrInvalidArgument).Response())
+		c.Abort()
+		return
+	}
+
+	userID, ok := middleware.GetUserID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	orgUnitID, ok := middleware.GetOrgUnitID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	res, err := h.{{.EntityCamelCase}}UseCase.Create{{.EntityUpper}}(c, orgUnitID, req, userID)
+	if err != nil {
+		errors.HandleAppError(c, err)
+		c.Abort()
+		return
+	}
+
+	c.JSON(http.StatusCreated, response.SuccessAPIResponse(http.StatusCreated, "success", resource.New{{.EntityUpper}}Resource(res)))
+}

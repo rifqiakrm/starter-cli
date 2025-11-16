@@ -1,0 +1,70 @@
+package handler
+
+import (
+	"gin-starter/common/errors"
+	"gin-starter/common/interfaces"
+	"gin-starter/common/response"
+	"gin-starter/middleware"
+	"gin-starter/modules/{{.Schema}}/resource"
+	"gin-starter/modules/{{.Schema}}/{{.Version}}/service"
+	"net/http"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+)
+
+// {{.EntityUpper}}UpdaterHandler handles HTTP requests for updating {{.EntityCamelCase}}.
+type {{.EntityUpper}}UpdaterHandler struct {
+	{{.EntityCamelCase}}UseCase service.{{.EntityUpper}}UpdaterUseCase
+	cloudStorage interfaces.CloudStorageUseCase
+}
+
+// New{{.EntityUpper}}UpdaterHandler creates a new {{.EntityUpper}}UpdaterHandler.
+func New{{.EntityUpper}}UpdaterHandler({{.EntityCamelCase}}UseCase service.{{.EntityUpper}}UpdaterUseCase, cloudStorage interfaces.CloudStorageUseCase) *{{.EntityUpper}}UpdaterHandler {
+	return &{{.EntityUpper}}UpdaterHandler{
+		{{.EntityCamelCase}}UseCase: {{.EntityCamelCase}}UseCase,
+		cloudStorage: cloudStorage,
+	}
+}
+
+// Update{{.EntityUpper}} handles the HTTP request to update an existing {{.EntityCamelCase}}.
+func (h *{{.EntityUpper}}UpdaterHandler) Update{{.EntityUpper}}(c *gin.Context) {
+	var req resource.Update{{.EntityUpper}}Request
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errors.Wrap(err, errors.ErrInvalidArgument).Response())
+		c.Abort()
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errors.Wrap(err, errors.ErrInvalidArgument).Response())
+		c.Abort()
+		return
+	}
+
+	userID, ok := middleware.GetUserID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	orgUnitID, ok := middleware.GetOrgUnitID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	res, err := h.{{.EntityCamelCase}}UseCase.Update{{.EntityUpper}}(c, orgUnitID, id, req, userID)
+	if err != nil {
+		errors.HandleAppError(c, err)
+		c.Abort()
+		return
+	}
+
+	c.JSON(http.StatusOK, response.SuccessAPIResponse(http.StatusOK, "success", resource.New{{.EntityUpper}}Resource(res)))
+}

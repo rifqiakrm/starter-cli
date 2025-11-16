@@ -1,0 +1,70 @@
+package service
+
+import (
+	"context"
+	"gin-starter/common/errors"
+	"gin-starter/config"
+	commonEntity "gin-starter/entity"
+	"gin-starter/modules/{{.Schema}}/entity"
+	"gin-starter/modules/{{.Schema}}/resource"
+	"gin-starter/modules/{{.Schema}}/{{.Version}}/repository"
+	"time"
+	"github.com/google/uuid"
+	"github.com/jinzhu/copier"
+	"gorm.io/gorm"
+)
+
+// {{.EntityUpper}}Creator handles creation logic for {{.EntityUpper}}
+type {{.EntityUpper}}Creator struct {
+	cfg           config.Config
+	{{.EntityCamelCase}}Creator repository.{{.EntityUpper}}CreatorRepositoryUseCase
+	{{.EntityCamelCase}}Finder  repository.{{.EntityUpper}}FinderRepositoryUseCase
+	{{.EntityCamelCase}}Updater repository.{{.EntityUpper}}UpdaterRepositoryUseCase
+	cloudStorage  interfaces.CloudStorageUseCase
+}
+
+// {{.EntityUpper}}CreatorUseCase defines the creation use case
+type {{.EntityUpper}}CreatorUseCase interface {
+	Create{{.EntityUpper}}(ctx context.Context, orgUnitID uuid.UUID, req resource.Create{{.EntityUpper}}Request, executorID uuid.UUID) (*entity.{{.EntityUpper}}, error)
+}
+
+// New{{.EntityUpper}}Creator returns a new {{.EntityUpper}}Creator
+func New{{.EntityUpper}}Creator(
+	cfg config.Config,
+	{{.EntityCamelCase}}Creator repository.{{.EntityUpper}}CreatorRepositoryUseCase,
+	{{.EntityCamelCase}}Finder repository.{{.EntityUpper}}FinderRepositoryUseCase,
+	{{.EntityCamelCase}}Updater repository.{{.EntityUpper}}UpdaterRepositoryUseCase,
+	cloudStorage  interfaces.CloudStorageUseCase,
+) *{{.EntityUpper}}Creator {
+	return &{{.EntityUpper}}Creator{
+		cfg:             cfg,
+		{{.EntityCamelCase}}Creator: {{.EntityCamelCase}}Creator,
+		{{.EntityCamelCase}}Finder:  {{.EntityCamelCase}}Finder,
+		{{.EntityCamelCase}}Updater: {{.EntityCamelCase}}Updater,
+		cloudStorage:  cloudStorage,
+	}
+}
+
+// Create{{.EntityUpper}} creates a new {{.EntityUpper}}
+func (svc *{{.EntityUpper}}Creator) Create{{.EntityUpper}}(ctx context.Context, orgUnitID uuid.UUID, req resource.Create{{.EntityUpper}}Request, executorID uuid.UUID) (*entity.{{.EntityUpper}}, error) {
+	// TODO: Implement duplication check logic based on your entity's unique fields
+	// existing, err := svc.{{.EntityCamelCase}}Finder.FindByUniqueField(ctx, orgUnitID, req.UniqueField, false)
+	// if err != nil {
+	//     return nil, err
+	// }
+	// if existing != nil {
+	//     return nil, errors.ErrAlreadyExists
+	// }
+
+	// Parse request -> entity
+	{{.EntityCamelCase}} := entity.New{{.EntityUpper}}()
+	// TODO: Map request fields to entity
+	// {{.EntityCamelCase}}.Name = req.Name
+	// {{.EntityCamelCase}}.Email = req.Email
+
+	if err := svc.{{.EntityCamelCase}}Creator.CreateOrUpdate(ctx, {{.EntityCamelCase}}); err != nil {
+		return nil, errors.Wrap(err, errors.ErrInternal)
+	}
+
+	return {{.EntityCamelCase}}, nil
+}

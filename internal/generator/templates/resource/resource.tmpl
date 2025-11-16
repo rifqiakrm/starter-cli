@@ -1,0 +1,30 @@
+package resource
+
+import (
+	"time"
+	"gin-starter/modules/{{.Schema}}/entity"
+	"github.com/google/uuid"
+)
+
+// {{.NameUpper}}Resource is the API resource for {{.NameUpper}}
+type {{.NameUpper}}Resource struct {
+{{- range .Columns}}
+{{- if not (IsSensitive .Name) }}
+	{{.Name | ToPascalCase}} {{ GoResourceType . }} `json:"{{.Name}}"`
+{{- end}}
+{{- end}}
+}
+
+// New{{.NameUpper}}Resource maps entity.{{.NameUpper}} -> resource.{{.NameUpper}}Resource
+func New{{.NameUpper}}Resource(e *entity.{{.NameUpper}}) *{{.NameUpper}}Resource {
+	if e == nil {
+		return nil
+	}
+	return &{{.NameUpper}}Resource{
+		{{- range .Columns}}
+		{{- if not (IsSensitive .Name) }}
+		{{.Name | ToPascalCase}}: {{ MapFromEntity . }},
+		{{- end}}
+		{{- end}}
+	}
+}

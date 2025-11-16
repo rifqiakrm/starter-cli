@@ -1,0 +1,78 @@
+package service
+
+import (
+	"context"
+	"gin-starter/common/errors"
+	"gin-starter/common/sqlconv"
+	"gin-starter/config"
+	commonEntity "gin-starter/entity"
+	"gin-starter/modules/{{.Schema}}/entity"
+	"gin-starter/modules/{{.Schema}}/resource"
+	"gin-starter/modules/{{.Schema}}/{{.Version}}/repository"
+	"github.com/google/uuid"
+	"github.com/jinzhu/copier"
+)
+
+// {{.EntityUpper}}Updater handles update logic for {{.EntityUpper}}
+type {{.EntityUpper}}Updater struct {
+	cfg           config.Config
+	{{.EntityCamelCase}}Finder  repository.{{.EntityUpper}}FinderRepositoryUseCase
+	{{.EntityCamelCase}}Updater repository.{{.EntityUpper}}UpdaterRepositoryUseCase
+	cloudStorage  interfaces.CloudStorageUseCase
+}
+
+// {{.EntityUpper}}UpdaterUseCase defines the update use case
+type {{.EntityUpper}}UpdaterUseCase interface {
+	Update{{.EntityUpper}}(ctx context.Context, orgUnitID uuid.UUID, id uuid.UUID, req resource.Update{{.EntityUpper}}Request, executorID uuid.UUID) (*entity.{{.EntityUpper}}, error)
+}
+
+// New{{.EntityUpper}}Updater returns a new {{.EntityUpper}}Updater
+func New{{.EntityUpper}}Updater(
+	cfg config.Config,
+	{{.EntityCamelCase}}Finder repository.{{.EntityUpper}}FinderRepositoryUseCase,
+	{{.EntityCamelCase}}Updater repository.{{.EntityUpper}}UpdaterRepositoryUseCase,
+	cloudStorage  interfaces.CloudStorageUseCase,
+) *{{.EntityUpper}}Updater {
+	return &{{.EntityUpper}}Updater{
+		cfg:           cfg,
+		{{.EntityCamelCase}}Finder:  {{.EntityCamelCase}}Finder,
+		{{.EntityCamelCase}}Updater: {{.EntityCamelCase}}Updater,
+		cloudStorage:  cloudStorage,
+	}
+}
+
+// Update{{.EntityUpper}} updates an existing {{.EntityUpper}}
+func (svc *{{.EntityUpper}}Updater) Update{{.EntityUpper}}(ctx context.Context, orgUnitID uuid.UUID, id uuid.UUID, req resource.Update{{.EntityUpper}}Request, executorID uuid.UUID) (*entity.{{.EntityUpper}}, error) {
+	{{.EntityCamelCase}}, err := svc.{{.EntityCamelCase}}Finder.FindByID(ctx, orgUnitID, id, false)
+	if err != nil {
+		return nil, err
+	}
+	if {{.EntityCamelCase}} == nil {
+		return nil, errors.ErrRecordNotFound
+	}
+
+	// Create updated entity with changes
+	updated := &entity.{{.EntityUpper}}{
+		ID: id,
+		// TODO: Map updated fields from request
+		// Name:  req.Name,
+		// Email: req.Email,
+		Auditable: commonEntity.Auditable{
+			UpdatedBy: sqlconv.StringToNullString(executorID.String()),
+		},
+	}
+
+	// Copy non-zero values from updated to existing entity
+	if err := copier.CopyWithOption({{.EntityCamelCase}}, updated, copier.Option{
+		IgnoreEmpty: true,
+		DeepCopy:    true,
+	}); err != nil {
+		return nil, errors.Wrap(err, errors.ErrInternal)
+	}
+
+	if err := svc.{{.EntityCamelCase}}Updater.Update(ctx, {{.EntityCamelCase}}); err != nil {
+		return nil, errors.Wrap(err, errors.ErrInternal)
+	}
+
+	return {{.EntityCamelCase}}, nil
+}

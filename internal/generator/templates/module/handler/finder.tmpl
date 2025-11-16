@@ -1,0 +1,93 @@
+package handler
+
+import (
+	"gin-starter/common/errors"
+	"gin-starter/common/response"
+	"gin-starter/middleware"
+	"gin-starter/modules/{{.Schema}}/resource"
+	"gin-starter/modules/{{.Schema}}/{{.Version}}/service"
+	commonResource "gin-starter/resource"
+	"net/http"
+	"github.com/gin-gonic/gin"
+)
+
+// {{.EntityUpper}}FinderHandler handles HTTP requests for retrieving {{.EntityCamelCase}}.
+type {{.EntityUpper}}FinderHandler struct {
+	{{.EntityCamelCase}}UseCase service.{{.EntityUpper}}FinderUseCase
+}
+
+// New{{.EntityUpper}}FinderHandler creates a new {{.EntityUpper}}FinderHandler.
+func New{{.EntityUpper}}FinderHandler({{.EntityCamelCase}}UseCase service.{{.EntityUpper}}FinderUseCase) *{{.EntityUpper}}FinderHandler {
+	return &{{.EntityUpper}}FinderHandler{
+		{{.EntityCamelCase}}UseCase: {{.EntityCamelCase}}UseCase,
+	}
+}
+
+// Get{{.EntityUpper}}ByID handles the HTTP request to retrieve a {{.EntityCamelCase}} by ID.
+func (h *{{.EntityUpper}}FinderHandler) Get{{.EntityUpper}}ByID(c *gin.Context) {
+	id := c.Param("id")
+
+	userID, ok := middleware.GetUserID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	orgUnitID, ok := middleware.GetOrgUnitID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	res, err := h.{{.EntityCamelCase}}UseCase.Get{{.EntityUpper}}ByID(c, orgUnitID, id, userID)
+	if err != nil {
+		errors.HandleAppError(c, err)
+		c.Abort()
+		return
+	}
+
+	c.JSON(http.StatusOK, response.SuccessAPIResponse(http.StatusOK, "success", resource.New{{.EntityUpper}}Resource(res)))
+}
+
+// GetAll{{.EntityUpper}}s handles the HTTP request to retrieve all {{.EntityLower}} records.
+func (h *{{.EntityUpper}}FinderHandler) GetAll{{.EntityUpper}}s(c *gin.Context) {
+	var params commonResource.PaginationQueryParam
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, errors.Wrap(err, errors.ErrInvalidArgument).Response())
+		c.Abort()
+		return
+	}
+
+	userID, ok := middleware.GetUserID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	orgUnitID, ok := middleware.GetOrgUnitID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	list, meta, err := h.{{.EntityCamelCase}}UseCase.GetAll{{.EntityUpper}}s(c, orgUnitID, params.Limit, params.Offset, userID)
+	if err != nil {
+		errors.HandleAppError(c, err)
+		c.Abort()
+		return
+	}
+
+	c.JSON(http.StatusOK, response.SuccessAPIResponse(
+		http.StatusOK,
+		"success",
+		commonResource.NewList(list, resource.New{{.EntityUpper}}Resource, meta),
+	))
+}

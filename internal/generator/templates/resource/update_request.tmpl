@@ -1,0 +1,8 @@
+// Update{{.NameUpper}}Request is the payload to update {{.NameUpper}}
+type Update{{.NameUpper}}Request struct {
+{{- range .Columns}}
+{{- if IncludeInUpdate . }}
+	{{.Name | ToPascalCase}} {{ GoRequestType . false }} `json:"{{.Name}}"`
+{{- end}}
+{{- end}}
+}

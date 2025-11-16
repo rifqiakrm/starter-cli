@@ -1,0 +1,78 @@
+package {{.Module}}
+
+import (
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
+	"gin-starter/app"
+	"gin-starter/common/interfaces"
+	"gin-starter/config"
+	{{- range .CustomImports}}
+	{{.}}
+	{{- end}}
+	"{{.ImportPath}}/repository"
+	"{{.ImportPath}}/service"
+)
+
+// Build{{.HandlerPrefix}}Handler builds {{.Module}} handler
+// starting from handler down to repository or tool.
+func Build{{.HandlerPrefix}}Handler(cfg config.Config, router *gin.Engine, db *gorm.DB, cache interfaces.Cacheable, cloudStorage interfaces.CloudStorageUseCase) {
+	{{- range .Tables}}
+	// {{.DisplayName}} Repository
+	{{.Name | ToCamel}}FinderRepo := repository.New{{.DisplayName}}FinderRepository(db, cache)
+	{{.Name | ToCamel}}CreatorRepo := repository.New{{.DisplayName}}CreatorRepository(db, cache)
+	{{.Name | ToCamel}}UpdaterRepo := repository.New{{.DisplayName}}UpdaterRepository(db, cache)
+	{{.Name | ToCamel}}DeleterRepo := repository.New{{.DisplayName}}DeleterRepository(db, cache)
+
+	// {{.DisplayName}} Service
+	{{.Name | ToCamel}}CreatorSvc := service.New{{.DisplayName}}Creator(cfg, {{.Name | ToCamel}}CreatorRepo, {{.Name | ToCamel}}FinderRepo, {{.Name | ToCamel}}UpdaterRepo, cloudStorage)
+	{{.Name | ToCamel}}FinderSvc := service.New{{.DisplayName}}Finder(cfg, {{.Name | ToCamel}}FinderRepo, cloudStorage)
+	{{.Name | ToCamel}}UpdaterSvc := service.New{{.DisplayName}}Updater(cfg, {{.Name | ToCamel}}FinderRepo, {{.Name | ToCamel}}UpdaterRepo, cloudStorage)
+	{{.Name | ToCamel}}DeleterSvc := service.New{{.DisplayName}}Deleter(cfg, {{.Name | ToCamel}}DeleterRepo)
+	{{- end}}
+
+	{{- if .HasAuth}}
+	// Auth Service (only for auth module)
+	{{- $userEntity := index .Tables 0}}
+	{{- $permissionEntity := index .Tables 1}}
+	authService := service.NewAuthService(cfg, {{$userEntity.Name | ToCamel}}FinderRepo, {{$permissionEntity.Name | ToCamel}}FinderRepo, cache)
+	{{- end}}
+
+    // {{.HandlerPrefix}} Handler
+    handler := app.New{{.HandlerPrefix}}HTTPHandler(
+        cfg,
+        router,
+        {{- if .HasAuth}}
+        // Auth
+        authService,
+        {{- end}}
+        {{- range .Tables}}
+        // {{.DisplayName}}
+        {{.Name | ToCamel}}CreatorSvc, {{.Name | ToCamel}}FinderSvc, {{.Name | ToCamel}}UpdaterSvc, {{.Name | ToCamel}}DeleterSvc,
+        {{- end}}
+        // Cloud Storage
+        cloudStorage,
+        // Cache
+        cache,
+    )
+
+    // {{.HandlerPrefix}} Routes
+    handler.{{.HandlerPrefix}}FinderHTTPHandler()
+    handler.{{.HandlerPrefix}}CreatorHTTPHandler()
+    handler.{{.HandlerPrefix}}UpdaterHTTPHandler()
+    handler.{{.HandlerPrefix}}DeleterHTTPHandler()
+}
+
+{{- if .HasCron}}
+// BuildExampleCronjobHandler is used to build the cron handler.
+func BuildExampleCronjobHandler(cfg config.Config, db *gorm.DB, cache interfaces.Cacheable, cloudStorage interfaces.CloudStorageUseCase) *cronjobHandler.ExampleCronjob {
+	// Repository
+	{{- $firstEntity := index .Tables 0}}
+	{{$firstEntity.Name | ToCamel}}FinderRepo := repository.New{{$firstEntity.DisplayName}}FinderRepository(db, cache)
+
+	// Service
+	svc := service.New{{$firstEntity.DisplayName}}Finder(cfg, {{$firstEntity.Name | ToCamel}}FinderRepo, cloudStorage)
+
+	return cronjobHandler.NewExampleCronjobHandler(svc)
+}
+{{- end}}

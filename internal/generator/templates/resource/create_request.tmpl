@@ -1,0 +1,8 @@
+// Create{{.NameUpper}}Request is the payload to create {{.NameUpper}}
+type Create{{.NameUpper}}Request struct {
+{{- range .Columns}}
+{{- if IncludeInCreate . }}
+	{{.Name | ToPascalCase}} {{ GoRequestType . true }} `json:"{{.Name}}" binding:"required"`
+{{- end}}
+{{- end}}
+}

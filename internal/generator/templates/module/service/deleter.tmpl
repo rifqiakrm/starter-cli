@@ -1,0 +1,42 @@
+package service
+
+import (
+	"context"
+	"gin-starter/common/errors"
+	"gin-starter/config"
+	"gin-starter/modules/{{.Schema}}/{{.Version}}/repository"
+	"github.com/google/uuid"
+)
+
+// {{.EntityUpper}}Deleter handles delete logic for {{.EntityUpper}}
+type {{.EntityUpper}}Deleter struct {
+	cfg  config.Config
+	{{.EntityCamelCase}}Deleter repository.{{.EntityUpper}}DeleterRepositoryUseCase
+	cloudStorage  interfaces.CloudStorageUseCase
+}
+
+// {{.EntityUpper}}DeleterUseCase defines the delete use case
+type {{.EntityUpper}}DeleterUseCase interface {
+	Delete{{.EntityUpper}}ByID(ctx context.Context, orgUnitID uuid.UUID, id string, executorID uuid.UUID) error
+}
+
+// New{{.EntityUpper}}Deleter returns a new {{.EntityUpper}}Deleter
+func New{{.EntityUpper}}Deleter(
+	cfg config.Config,
+	{{.EntityCamelCase}}Deleter repository.{{.EntityUpper}}DeleterRepositoryUseCase,
+	cloudStorage  interfaces.CloudStorageUseCase,
+) *{{.EntityUpper}}Deleter {
+	return &{{.EntityUpper}}Deleter{
+		cfg: cfg,
+		{{.EntityCamelCase}}Deleter: {{.EntityCamelCase}}Deleter,
+		cloudStorage:  cloudStorage,
+	}
+}
+
+// Delete{{.EntityUpper}}ByID deletes a {{.EntityUpper}} by ID
+func (svc *{{.EntityUpper}}Deleter) Delete{{.EntityUpper}}ByID(ctx context.Context, orgUnitID uuid.UUID, id string, executorID uuid.UUID) error {
+	if err := svc.{{.EntityCamelCase}}Deleter.Delete(ctx, uuid.MustParse(id), executorID); err != nil {
+		return errors.Wrap(err, errors.ErrInternal)
+	}
+	return nil
+}

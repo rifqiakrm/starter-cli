@@ -1,0 +1,36 @@
+package entity
+
+import (
+	"database/sql"
+	"time"
+	"github.com/google/uuid"
+	commonEntity "gin-starter/entity"
+)
+
+const (
+	{{.Name | ToLowerCamel}}TableName = "{{.Schema}}.{{.Name}}"
+)
+
+// {{.NameUpper}} entity
+type {{.NameUpper}} struct {
+{{- range .Columns}}
+{{- if not (IsAuditable .Name) }}
+	{{.Name | ToPascalCase}} {{ GoType . }} `json:"{{.Name}}"`
+{{- end}}
+{{- end}}
+{{- if not .IsView }}
+	commonEntity.Auditable
+{{- end}}
+}
+
+// TableName defines table name of the struct
+func (m *{{.NameUpper}}) TableName() string {
+	return {{.Name | ToLowerCamel}}TableName
+}
+
+{{- if not .IsView }}
+// New{{.NameUpper}} constructor
+func New{{.NameUpper}}() *{{.NameUpper}} {
+	return &{{.NameUpper}}{}
+}
+{{- end}}

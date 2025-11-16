@@ -1,0 +1,50 @@
+package handler
+
+import (
+	"gin-starter/common/errors"
+	"gin-starter/common/response"
+	"gin-starter/middleware"
+	"gin-starter/modules/{{.Schema}}/{{.Version}}/service"
+	"net/http"
+	"github.com/gin-gonic/gin"
+)
+
+// {{.EntityUpper}}DeleterHandler handles HTTP requests for deleting {{.EntityCamelCase}}.
+type {{.EntityUpper}}DeleterHandler struct {
+	{{.EntityCamelCase}}UseCase service.{{.EntityUpper}}DeleterUseCase
+}
+
+// New{{.EntityUpper}}DeleterHandler creates a new {{.EntityUpper}}DeleterHandler.
+func New{{.EntityUpper}}DeleterHandler({{.EntityCamelCase}}UseCase service.{{.EntityUpper}}DeleterUseCase) *{{.EntityUpper}}DeleterHandler {
+	return &{{.EntityUpper}}DeleterHandler{
+		{{.EntityCamelCase}}UseCase: {{.EntityCamelCase}}UseCase,
+	}
+}
+
+// Delete{{.EntityUpper}}ByID handles the HTTP request to delete a {{.EntityCamelCase}} by ID.
+func (h *{{.EntityUpper}}DeleterHandler) Delete{{.EntityUpper}}ByID(c *gin.Context) {
+	id := c.Param("id")
+
+	userID, ok := middleware.GetUserID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	orgUnitID, ok := middleware.GetOrgUnitID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errors.Wrap(nil, errors.ErrUnauthorized).Response())
+		c.Abort()
+		return
+	}
+
+	if err := h.{{.EntityCamelCase}}UseCase.Delete{{.EntityUpper}}ByID(c, orgUnitID, id, userID); err != nil {
+		errors.HandleAppError(c, err)
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, response.SuccessAPIResponse(http.StatusOK, "success", nil))
+}

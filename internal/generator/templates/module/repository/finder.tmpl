@@ -1,0 +1,97 @@
+package repository
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	commonCache "gin-starter/common/cache"
+	"gin-starter/common/interfaces"
+	"gin-starter/modules/{{.Schema}}/entity"
+	commonResource "gin-starter/resource"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
+	"gorm.io/gorm"
+)
+
+// {{.EntityUpper}}FinderRepositoryUseCase defines the interface for retrieving {{.EntityLower}} records.
+type {{.EntityUpper}}FinderRepositoryUseCase interface {
+	FindByID(ctx context.Context, orgUnitID uuid.UUID, id uuid.UUID, includeDeleted bool) (*entity.{{.EntityUpper}}, error)
+	FindAll(ctx context.Context, orgUnitID uuid.UUID, limit, offset int) ([]*entity.{{.EntityUpper}}, *commonResource.Meta, error)
+}
+
+// {{.EntityUpper}}FinderRepository is the GORM implementation of {{.EntityUpper}}FinderRepositoryUseCase.
+type {{.EntityUpper}}FinderRepository struct {
+	db    *gorm.DB
+	cache interfaces.Cacheable
+}
+
+// New{{.EntityUpper}}FinderRepository creates a new {{.EntityUpper}}FinderRepository.
+func New{{.EntityUpper}}FinderRepository(db *gorm.DB, cache interfaces.Cacheable) *{{.EntityUpper}}FinderRepository {
+	return &{{.EntityUpper}}FinderRepository{
+		db:    db,
+		cache: cache,
+	}
+}
+
+// FindByID retrieves a {{.EntityLower}} by its ID.
+func (r *{{.EntityUpper}}FinderRepository) FindByID(ctx context.Context, orgUnitID uuid.UUID, id uuid.UUID, includeDeleted bool) (*entity.{{.EntityUpper}}, error) {
+	var e entity.{{.EntityUpper}}
+
+	// Try cache first
+	cacheKey := fmt.Sprintf(commonCache.{{.EntityUpper}}FindByID, id)
+	res, _ := r.cache.Get(cacheKey)
+
+	if res != nil {
+		if err := json.Unmarshal(res, &e); err != nil {
+			return nil, errors.Wrap(err, "[{{.EntityUpper}}FinderRepository-FindByID] failed to unmarshal {{.EntityLower}}")
+		}
+		return &e, nil
+	}
+
+	query := r.db.WithContext(ctx)
+	if includeDeleted {
+		query = query.Unscoped()
+	}
+
+	if err := query.First(&e, "id = ? AND org_unit_id = ?", id, orgUnitID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "[{{.EntityUpper}}FinderRepository-FindByID] failed to find {{.EntityLower}}")
+	}
+
+	_ = r.cache.Set(cacheKey, &e, commonCache.OneHour)
+
+	return &e, nil
+}
+
+// FindAll retrieves a list of {{.EntityLower}} records with pagination and meta info.
+func (r *{{.EntityUpper}}FinderRepository) FindAll(ctx context.Context, orgUnitID uuid.UUID, limit, offset int) ([]*entity.{{.EntityUpper}}, *commonResource.Meta, error) {
+	var (
+		list  []*entity.{{.EntityUpper}}
+		total int64
+	)
+
+	// Count total records
+	if err := r.db.WithContext(ctx).Model(&entity.{{.EntityUpper}}{}).Where("org_unit_id = ?", orgUnitID).Count(&total).Error; err != nil {
+		return nil, nil, errors.Wrap(err, "[{{.EntityUpper}}FinderRepository-FindAll] failed to count {{.EntityLower}} records")
+	}
+
+	query := r.db.WithContext(ctx).Model(&entity.{{.EntityUpper}}{}).Where("org_unit_id = ?", orgUnitID)
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	if err := query.Find(&list).Error; err != nil {
+		return nil, nil, errors.Wrap(err, "[{{.EntityUpper}}FinderRepository-FindAll] failed to find list of {{.EntityLower}}")
+	}
+
+	// Build meta
+	meta := commonResource.BuildMeta(total, limit, offset)
+
+	return list, meta, nil
+}

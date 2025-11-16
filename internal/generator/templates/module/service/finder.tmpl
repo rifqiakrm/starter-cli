@@ -1,0 +1,50 @@
+package service
+
+import (
+	"context"
+	"gin-starter/common/errors"
+	"gin-starter/common/interfaces"
+	"gin-starter/config"
+	"gin-starter/modules/{{.Schema}}/entity"
+	"gin-starter/modules/{{.Schema}}/{{.Version}}/repository"
+	commonResource "gin-starter/resource"
+	"github.com/google/uuid"
+)
+
+// {{.EntityUpper}}Finder handles find logic for {{.EntityUpper}}
+type {{.EntityUpper}}Finder struct {
+	cfg          config.Config
+	repo         repository.{{.EntityUpper}}FinderRepositoryUseCase
+	cloudStorage interfaces.CloudStorageUseCase
+}
+
+// {{.EntityUpper}}FinderUseCase defines the find use case
+type {{.EntityUpper}}FinderUseCase interface {
+	Get{{.EntityUpper}}ByID(ctx context.Context, orgUnitID uuid.UUID, id string, executorID uuid.UUID) (*entity.{{.EntityUpper}}, error)
+	GetAll{{.EntityUpper}}s(ctx context.Context, orgUnitID uuid.UUID, limit, offset int, executorID uuid.UUID) ([]*entity.{{.EntityUpper}}, *commonResource.Meta, error)
+}
+
+// New{{.EntityUpper}}Finder returns a new {{.EntityUpper}}Finder
+func New{{.EntityUpper}}Finder(cfg config.Config, repo repository.{{.EntityUpper}}FinderRepositoryUseCase, cloudStorage interfaces.CloudStorageUseCase) *{{.EntityUpper}}Finder {
+	return &{{.EntityUpper}}Finder{cfg: cfg, repo: repo, cloudStorage: cloudStorage}
+}
+
+// Get{{.EntityUpper}}ByID retrieves a {{.EntityUpper}} by ID
+func (svc *{{.EntityUpper}}Finder) Get{{.EntityUpper}}ByID(ctx context.Context, orgUnitID uuid.UUID, id string, executorID uuid.UUID) (*entity.{{.EntityUpper}}, error) {
+	result, err := svc.repo.FindByID(ctx, orgUnitID, uuid.MustParse(id), false)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.ErrInternal)
+	}
+
+	return result, nil
+}
+
+// GetAll{{.EntityUpper}}s retrieves all {{.EntityLower}}s
+func (svc *{{.EntityUpper}}Finder) GetAll{{.EntityUpper}}s(ctx context.Context, orgUnitID uuid.UUID, limit, offset int, executorID uuid.UUID) ([]*entity.{{.EntityUpper}}, *commonResource.Meta, error) {
+	records, meta, err := svc.repo.FindAll(ctx, orgUnitID, limit, offset)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, errors.ErrInternal)
+	}
+
+	return records, meta, nil
+}

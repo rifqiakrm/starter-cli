@@ -1,0 +1,137 @@
+package app
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"gin-starter/common/constant"
+	"gin-starter/common/errors"
+	"gin-starter/common/interfaces"
+	"gin-starter/config"
+	"gin-starter/middleware"
+	{{.Module}}handlerv1 "{{.ImportPath}}/handler"
+	{{.Module}}servicev1 "{{.ImportPath}}/service"
+)
+
+// {{.HandlerStruct}} is a struct to handle dependencies injection
+type {{.HandlerStruct}} struct {
+	cfg         config.Config
+	router      *gin.Engine
+	{{- range .Tables}}
+	{{.Name | ToCamel}}Creator {{$.Module}}servicev1.{{.DisplayName}}CreatorUseCase
+	{{.Name | ToCamel}}Finder  {{$.Module}}servicev1.{{.DisplayName}}FinderUseCase
+	{{.Name | ToCamel}}Updater {{$.Module}}servicev1.{{.DisplayName}}UpdaterUseCase
+	{{.Name | ToCamel}}Deleter {{$.Module}}servicev1.{{.DisplayName}}DeleterUseCase
+	{{- end}}
+	cloudStorage interfaces.CloudStorageUseCase
+	cache        interfaces.Cacheable
+}
+
+// New{{.HandlerStruct}} creates new {{.HandlerStruct}}
+func New{{.HandlerStruct}}(
+	cfg config.Config,
+	router *gin.Engine,
+	{{- range .Tables}}
+	{{.Name | ToCamel}}Creator {{$.Module}}servicev1.{{.DisplayName}}CreatorUseCase,
+	{{.Name | ToCamel}}Finder  {{$.Module}}servicev1.{{.DisplayName}}FinderUseCase,
+	{{.Name | ToCamel}}Updater {{$.Module}}servicev1.{{.DisplayName}}UpdaterUseCase,
+	{{.Name | ToCamel}}Deleter {{$.Module}}servicev1.{{.DisplayName}}DeleterUseCase,
+	{{- end}}
+	cloudStorage interfaces.CloudStorageUseCase,
+	cache interfaces.Cacheable,
+) *{{.HandlerStruct}} {
+	return &{{.HandlerStruct}}{
+		cfg:         cfg,
+		router:      router,
+		{{- range .Tables}}
+		{{.Name | ToCamel}}Creator: {{.Name | ToCamel}}Creator,
+		{{.Name | ToCamel}}Finder:  {{.Name | ToCamel}}Finder,
+		{{.Name | ToCamel}}Updater: {{.Name | ToCamel}}Updater,
+		{{.Name | ToCamel}}Deleter: {{.Name | ToCamel}}Deleter,
+		{{- end}}
+		cloudStorage: cloudStorage,
+		cache:        cache,
+	}
+}
+
+// {{.HandlerPrefix}}FinderHTTPHandler is a handler for finder APIs
+func (h *{{.HandlerStruct}}) {{.HandlerPrefix}}FinderHTTPHandler() {
+	{{- range .Tables}}
+	{{.Name | ToCamel}}Hnd := {{$.Module}}handlerv1.New{{.DisplayName}}FinderHandler(h.{{.Name | ToCamel}}Finder)
+	{{- end}}
+
+	v1 := h.router.Group("{{.RoutePrefix}}", middleware.Auth(h.cfg, h.cache))
+	{
+		{{- range .Tables}}
+		{{.Name | ToLower}}s := v1.Group("/{{GetRoutePath .Name}}", middleware.RequirePermission(
+			constant.Perm{{.DisplayName}}View,
+			constant.PermSystemManage,
+		))
+		{
+			{{.Name | ToLower}}s.GET("", {{.Name | ToCamel}}Hnd.GetAll{{.DisplayName}}s)
+			{{.Name | ToLower}}s.GET("/:id", {{.Name | ToCamel}}Hnd.Get{{.DisplayName}}ByID)
+		}
+		{{- end}}
+	}
+}
+
+// {{.HandlerPrefix}}CreatorHTTPHandler is a handler for creator APIs
+func (h *{{.HandlerStruct}}) {{.HandlerPrefix}}CreatorHTTPHandler() {
+	{{- range .Tables}}
+	{{.Name | ToCamel}}Hnd := {{$.Module}}handlerv1.New{{.DisplayName}}CreatorHandler(h.{{.Name | ToCamel}}Creator, h.cloudStorage)
+	{{- end}}
+
+	v1 := h.router.Group("{{.RoutePrefix}}", middleware.Auth(h.cfg, h.cache))
+	{
+		{{- range .Tables}}
+		{{.Name | ToLower}}s := v1.Group("/{{GetRoutePath .Name}}", middleware.RequirePermission(
+			constant.Perm{{.DisplayName}}Create,
+			constant.PermSystemManage,
+		))
+		{
+			{{.Name | ToLower}}s.POST("", {{.Name | ToCamel}}Hnd.Create{{.DisplayName}})
+		}
+		{{- end}}
+	}
+}
+
+// {{.HandlerPrefix}}UpdaterHTTPHandler is a handler for updater APIs
+func (h *{{.HandlerStruct}}) {{.HandlerPrefix}}UpdaterHTTPHandler() {
+	{{- range .Tables}}
+	{{.Name | ToCamel}}Hnd := {{$.Module}}handlerv1.New{{.DisplayName}}UpdaterHandler(h.{{.Name | ToCamel}}Updater, h.cloudStorage)
+	{{- end}}
+
+	v1 := h.router.Group("{{.RoutePrefix}}", middleware.Auth(h.cfg, h.cache))
+	{
+		{{- range .Tables}}
+		{{.Name | ToLower}}s := v1.Group("/{{GetRoutePath .Name}}", middleware.RequirePermission(
+			constant.Perm{{.DisplayName}}Update,
+			constant.PermSystemManage,
+		))
+		{
+			{{.Name | ToLower}}s.PUT("/:id", {{.Name | ToCamel}}Hnd.Update{{.DisplayName}})
+		}
+		{{- end}}
+	}
+}
+
+// {{.HandlerPrefix}}DeleterHTTPHandler is a handler for deleter APIs
+func (h *{{.HandlerStruct}}) {{.HandlerPrefix}}DeleterHTTPHandler() {
+	{{- range .Tables}}
+	{{.Name | ToCamel}}Hnd := {{$.Module}}handlerv1.New{{.DisplayName}}DeleterHandler(h.{{.Name | ToCamel}}Deleter)
+	{{- end}}
+
+	v1 := h.router.Group("{{.RoutePrefix}}", middleware.Auth(h.cfg, h.cache))
+	{
+		{{- range .Tables}}
+		{{.Name | ToLower}}s := v1.Group("/{{GetRoutePath .Name}}", middleware.RequirePermission(
+			constant.Perm{{.DisplayName}}Delete,
+			constant.PermSystemManage,
+		))
+		{
+			{{.Name | ToLower}}s.DELETE("/:id", {{.Name | ToCamel}}Hnd.Delete{{.DisplayName}}ByID)
+		}
+		{{- end}}
+	}
+}

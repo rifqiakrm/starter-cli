@@ -1,0 +1,27 @@
+# github.com/rifqiakrm/starter-cli configuration
+template_paths:
+  # Entity templates
+  entity: "./templates/entity/entity.tmpl"
+
+  # Resource templates
+  resource: "./templates/resource/resource.tmpl"
+  resource_create: "./templates/resource/create_request.tmpl"
+  resource_update: "./templates/resource/update_request.tmpl"
+
+  # Handler templates
+  handler_creator: "./templates/module/handler/creator.tmpl"
+  handler_finder: "./templates/module/handler/finder.tmpl"
+  handler_updater: "./templates/module/handler/updater.tmpl"
+  handler_deleter: "./templates/module/handler/deleter.tmpl"
+
+  # Service templates
+  service_creator: "./templates/module/service/creator.tmpl"
+  service_finder: "./templates/module/service/finder.tmpl"
+  service_updater: "./templates/module/service/updater.tmpl"
+  service_deleter: "./templates/module/service/deleter.tmpl"
+
+  # Repository templates
+  repository_creator: "./templates/module/repository/creator.tmpl"
+  repository_finder: "./templates/module/repository/finder.tmpl"
+  repository_updater: "./templates/module/repository/updater.tmpl"
+  repository_deleter: "./templates/module/repository/deleter.tmpl"

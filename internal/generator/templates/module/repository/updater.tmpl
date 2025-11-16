@@ -1,0 +1,42 @@
+package repository
+
+import (
+	"context"
+	"gin-starter/common/interfaces"
+	commonCache "gin-starter/common/cache"
+	"gin-starter/modules/{{.Schema}}/entity"
+	"github.com/pkg/errors"
+	"gorm.io/gorm"
+)
+
+// {{.EntityUpper}}UpdaterRepositoryUseCase defines the interface for updating {{.EntityLower}} records.
+type {{.EntityUpper}}UpdaterRepositoryUseCase interface {
+	Update(ctx context.Context, e *entity.{{.EntityUpper}}) error
+}
+
+// {{.EntityUpper}}UpdaterRepository is the GORM implementation of {{.EntityUpper}}UpdaterRepository.
+type {{.EntityUpper}}UpdaterRepository struct {
+	db *gorm.DB
+	cache interfaces.Cacheable
+}
+
+// New{{.EntityUpper}}UpdaterRepository creates a new {{.EntityUpper}}UpdaterRepository.
+func New{{.EntityUpper}}UpdaterRepository(db *gorm.DB, cache interfaces.Cacheable) *{{.EntityUpper}}UpdaterRepository {
+	return &{{.EntityUpper}}UpdaterRepository{
+		db: db,
+		cache: cache,
+	}
+}
+
+// Update modifies an existing {{.EntityLower}} in the database.
+func (r *{{.EntityUpper}}UpdaterRepository) Update(ctx context.Context, e *entity.{{.EntityUpper}}) error {
+	if err := r.db.WithContext(ctx).Save(e).Error; err != nil {
+		return errors.Wrap(err, "[{{.EntityUpper}}UpdaterRepository-Update] failed to update {{.EntityLower}}")
+	}
+
+	// Invalidate cache
+	cacheKey := fmt.Sprintf(commonCache.{{.EntityUpper}}FindByID, e.ID.String())
+	_ = r.cache.Remove(cacheKey)
+
+	return nil
+}
