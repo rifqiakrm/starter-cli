@@ -44,5 +44,6 @@ script/.DS_Store
 .env
 images
 tmp
+starter-cli
 
 # End of https://www.toptal.com/developers/gitignore/api/go

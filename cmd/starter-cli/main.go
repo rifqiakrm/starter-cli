@@ -12,6 +12,8 @@ import (
 	"github.com/rifqiakrm/starter-cli/internal/types"
 )
 
+const VERSION = "1.0.2"
+
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -23,14 +25,14 @@ func main() {
 	switch command {
 	case "all", "entity", "resource", "module":
 		runGenerator(command)
-	case "builder": // NEW COMMAND
+	case "builder":
 		runBuilder()
 	case "init":
 		initTemplates()
-	case "help", "-h", "--help": // ADD HELP COMMAND HANDLING
+	case "help", "-h", "--help":
 		printUsage()
 	case "version":
-		fmt.Println("starter-cli v1.0.0")
+		printVersion()
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printUsage()
@@ -111,7 +113,7 @@ func runGenerator(command string) {
 			log.Fatalf("Generate module error: %v", err)
 		}
 	case "version":
-		fmt.Println("starter-cli v1.0.0")
+		printVersion()
 	}
 }
 
@@ -184,6 +186,10 @@ func parseModuleParts(partsStr string) []types.ModulePart {
 	}
 
 	return parts
+}
+
+func printVersion() {
+	fmt.Println("starter-cli", VERSION)
 }
 
 func printUsage() {
